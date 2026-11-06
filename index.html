@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kas & Stok Barang Terpadu</title>
+  
+  <!-- ==========================================
+       FAVICON (IKON TAB BROWSER)
+       ========================================== -->
+  <link rel="icon" type="image/png" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-192.png"> <!-- Khusus untuk iPhone/iOS -->
+  
+  <!-- ==========================================
+       META TAGS UNTUK PREVIEW WHATSAPP / SOSMED
+       ========================================== -->
+  <meta property="og:title" content="Kas & Stok Barang Terpadu">
+  <meta property="og:description" content="Aplikasi pencatatan kas, stok barang, dan laporan keuangan cerdas secara Real-Time.">
+  <meta property="og:image" content="https://NAMA-ANDA.github.io/NAMA-REPO/icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:type" content="website">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ==========================================
+       HEADER MOBILE (DENGAN TOMBOL HAMBURGER)
+       ========================================== -->
+  <header class="top-header">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button id="btn-menu" class="hamburger-btn">☰</button>
+      <div class="logo">Kas & Stok</div>
+    </div>
+    <div id="sync-status" class="status-badge">Tersinkron</div>
+  </header>
+
+  <!-- Pelindung Latar Belakang Gelap Saat Menu Terbuka -->
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+  <div class="app-container">
+    
+    <!-- ==========================================
+         SIDEBAR NAVIGASI (OFF-CANVAS DI MOBILE)
+         ========================================== -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h2>Kas & Stok</h2>
+        <button id="btn-close-menu" class="close-menu-btn mobile-only">&times;</button>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#" data-target="dashboard" class="active">📊 <span class="nav-text">Dashboard</span></a></li>
+        <li><a href="#" data-target="tambah-barang">➕ <span class="nav-text">Input Barang</span></a></li>
+        <li><a href="#" data-target="barang">📦 <span class="nav-text">Katalog Barang</span></a></li>
+        <li><a href="#" data-target="pemasukan">📥 <span class="nav-text">Pemasukan</span></a></li>
+        <li><a href="#" data-target="pengeluaran">📤 <span class="nav-text">Pengeluaran</span></a></li>
+        <li><a href="#" data-target="laporan">📄 <span class="nav-text">Laporan</span></a></li>
+      </ul>
+    </nav>
+
+    <!-- ==========================================
+         KONTEN UTAMA APLIKASI
+         ========================================== -->
+    <main class="main-content">
+      
+<!-- HALAMAN 1: DASHBOARD -->
+      <section id="dashboard" class="view active">
+        <h2 class="page-title">Dashboard</h2>
+        
+        <!-- Kartu Ringkasan Keuangan -->
+        <div class="summary-cards">
+          <div class="card card-success">
+            <h3>Total Pemasukan</h3>
+            <p id="dash-pemasukan" class="money-text">Rp 0</p>
+          </div>
+          <div class="card card-danger">
+            <h3>Total Pengeluaran</h3>
+            <p id="dash-pengeluaran" class="money-text">Rp 0</p>
+          </div>
+          <div class="card card-primary">
+            <h3>Total Saldo</h3>
+            <p id="dash-saldo" class="money-text">Rp 0</p>
+          </div>
+        </div>
+
+        <!-- FITUR BARU: Zona Berbahaya (Reset App) -->
+        <div class="card mt-2" style="border: 1px solid var(--danger-light); background: #fffafb;">
+          <h3 style="color: var(--danger);">Zona Berbahaya (Reset Aplikasi)</h3>
+          <p style="margin-bottom: 1rem; font-size: 0.9rem;">Tindakan ini akan menghapus <b>seluruh data barang, riwayat pemasukan, riwayat pengeluaran, dan semua foto</b> secara permanen dari database Anda.</p>
+          <button id="btn-reset-app" class="btn btn-danger">Hapus & Reset Semua Data</button>
+        </div>
+      </section>
+
+<!-- HALAMAN KHUSUS: INPUT BARANG BARU -->
+      <section id="tambah-barang" class="view hidden">
+        <h2 class="page-title">Input Barang</h2>
+        <div class="card">
+          <h3 id="form-barang-title">Tambah Barang Baru</h3>
+          <form id="form-barang" class="form-grid">
+            <input type="hidden" id="brg-id">
+            <div class="form-group">
+              <label>Nama Barang</label>
+              <input type="text" id="brg-nama" autocomplete="off" required>
+            </div>
+            <div class="form-group">
+              <label>Stok Awal</label>
+              <input type="number" id="brg-stok" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Harga Beli (Rp)</label>
+              <input type="text" id="brg-hargabeli" inputmode="numeric" required>
+            </div>
+            <div class="form-group">
+              <label>Harga Jual (Rp)</label>
+              <input type="text" id="brg-hargajual" inputmode="numeric" required>
+            </div>
+            <div class="form-group full-width">
+              <label>Foto Barang (Opsional, Max 3MB JPG/PNG)</label>
+              <input type="file" id="brg-foto" accept="image/png, image/jpeg">
+              <div id="foto-preview-container" class="hidden mt-1">
+                <img id="brg-foto-preview" src="" alt="Preview">
+              </div>
+            </div>
+            <div class="form-actions full-width">
+              <button type="button" id="btn-batal-barang" class="btn btn-outline hidden">Batal Edit</button>
+              <button type="submit" class="btn btn-primary">Simpan Barang</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- HALAMAN 2: KATALOG / DAFTAR BARANG -->
+      <section id="barang" class="view hidden">
+        <h2 class="page-title">Katalog Barang</h2>
+        <div class="card">
+          <div class="flex-between" style="margin-bottom: 1.5rem;">
+            <h3>Daftar Barang Tersedia</h3>
+            <input type="text" id="search-barang" placeholder="Cari barang..." class="search-input">
+          </div>
+          
+          <!-- Kontainer untuk Grid Produk -->
+          <div id="grid-barang" class="product-grid">
+            <div class="text-center" style="grid-column: 1 / -1; padding: 2rem;">Memuat data...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HALAMAN 3: PEMASUKAN (PENJUALAN & JASA) -->
+      <section id="pemasukan" class="view hidden">
+        <h2 class="page-title">Catat Pemasukan</h2>
+        
+        <!-- Form Penjualan Barang Berstok -->
+        <div class="card">
+          <h3 style="margin-bottom: 1rem; color: var(--primary);">Penjualan Barang</h3>
+          <form id="form-pemasukan" class="form-grid">
+            <div class="form-group full-width">
+              <label>Pilih Barang</label>
+              <select id="in-barang" required>
+                <option value="">-- Pilih Barang --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Jumlah (Qty)</label>
+              <input type="number" id="in-qty" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>Total Harga (Otomatis & Bisa diedit)</label>
+              <input type="text" id="in-harga" inputmode="numeric" placeholder="0" required>
+            </div>
+            <div class="form-group full-width">
+              <label>Keterangan (Opsional)</label>
+              <input type="text" id="in-ket" placeholder="Misal: Pembeli tunai">
+            </div>
+            <div class="form-actions full-width">
+              <button type="submit" class="btn btn-success">Simpan Penjualan</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Form Pemasukan Jasa (Tanpa Stok) -->
+        <div class="card mt-2">
+          <h3 style="margin-bottom: 1rem; color: var(--warning);">Pendapatan Jasa / Lainnya</h3>
+          <form id="form-pemasukan-jasa" class="form-grid">
+            <div class="form-group full-width">
+              <label>Nama Layanan / Jasa</label>
+              <input type="text" id="jasa-nama" placeholder="Misal: Tambah Angin, Ganti Oli, dll" required>
+            </div>
+            <div class="form-group">
+              <label>Total Pendapatan (Rp)</label>
+              <input type="text" id="jasa-total" inputmode="numeric" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label>Keterangan (Opsional)</label>
+              <input type="text" id="jasa-ket" placeholder="Misal: Dari pelanggan motor beat">
+            </div>
+            <div class="form-actions full-width">
+              <button type="submit" class="btn btn-primary">Simpan Pendapatan Jasa</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- HALAMAN 4: PENGELUARAN -->
+      <section id="pengeluaran" class="view hidden">
+        <h2 class="page-title">Catat Pengeluaran</h2>
+        <div class="card">
+          <form id="form-pengeluaran" class="form-grid">
+            <div class="form-group">
+              <label>Jumlah Pengeluaran (Rp)</label>
+              <input type="text" id="out-jumlah" inputmode="numeric" required>
+            </div>
+            <div class="form-group full-width">
+              <label>Keterangan Pengeluaran</label>
+              <input type="text" id="out-ket" placeholder="Misal: Bayar listrik, beli bahan" required>
+            </div>
+            <div class="form-actions full-width">
+              <button type="submit" class="btn btn-danger">Simpan Pengeluaran</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- HALAMAN 5: LAPORAN & CETAK -->
+      <section id="laporan" class="view hidden">
+        <div class="laporan-header">
+          <h2 class="page-title">Laporan Transaksi</h2>
+          <div class="laporan-actions no-print">
+            <button id="btn-cetak" class="btn btn-outline">🖨️ Cetak PDF</button>
+            <button id="btn-csv" class="btn btn-outline">⬇️ Unduh CSV</button>
+          </div>
+        </div>
+
+        <!-- Filter Area -->
+        <div class="card no-print">
+          <form id="form-filter-laporan" class="form-grid">
+            <div class="form-group">
+              <label>Jenis Laporan</label>
+              <select id="lap-jenis">
+                <option value="bulanan">Bulanan</option>
+                <option value="tahunan">Tahunan</option>
+                <option value="semua">Keseluruhan</option>
+              </select>
+            </div>
+            <div class="form-group" id="lap-bulan-group">
+              <label>Bulan</label>
+              <select id="lap-bulan">
+                <option value="1">Januari</option><option value="2">Februari</option>
+                <option value="3">Maret</option><option value="4">April</option>
+                <option value="5">Mei</option><option value="6">Juni</option>
+                <option value="7">Juli</option><option value="8">Agustus</option>
+                <option value="9">September</option><option value="10">Oktober</option>
+                <option value="11">November</option><option value="12">Desember</option>
+              </select>
+            </div>
+            <div class="form-group" id="lap-tahun-group">
+              <label>Tahun</label>
+              <input type="number" id="lap-tahun" value="2026">
+            </div>
+            <div class="form-actions" style="align-self: end;">
+              <button type="submit" class="btn btn-primary">Tampilkan Laporan</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Area Hasil Cetak Laporan -->
+        <div id="area-cetak-laporan" class="card mt-2">
+          <div class="print-header">
+            <h2 id="judul-laporan">Laporan Belum Dimuat</h2>
+            <p id="tanggal-cetak">-</p>
+          </div>
+
+          <div class="summary-cards">
+            <div class="card card-success">
+              <h3>Total Pemasukan</h3>
+              <p id="lap-tot-pemasukan" class="money-text">Rp 0</p>
+            </div>
+            <div class="card card-danger">
+              <h3>Total Pengeluaran</h3>
+              <p id="lap-tot-pengeluaran" class="money-text">Rp 0</p>
+            </div>
+            <div class="card card-primary">
+              <h3>Total Saldo</h3>
+              <p id="lap-tot-saldo" class="money-text">Rp 0</p>
+            </div>
+          </div>
+
+          <h3 class="mt-2">Rincian Pemasukan</h3>
+          <div class="table-responsive">
+            <table class="data-table" id="tabel-lap-pemasukan">
+              <thead>
+                <tr><th>Tanggal</th><th>Barang / Jasa</th><th>Qty</th><th>Harga</th><th>Total</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody><tr><td colspan="6" class="text-center">Belum ditarik</td></tr></tbody>
+            </table>
+          </div>
+
+          <h3 class="mt-2">Rincian Pengeluaran</h3>
+          <div class="table-responsive">
+            <table class="data-table" id="tabel-lap-pengeluaran">
+              <thead>
+                <tr><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th></tr>
+              </thead>
+              <tbody><tr><td colspan="3" class="text-center">Belum ditarik</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  
+  <!-- ==========================================
+       KOMPONEN OVERLAY & POP-UP
+       ========================================== -->
+       
+  <!-- Modal Konfirmasi Hapus / Reset -->
+  <div id="custom-modal" class="modal-overlay hidden no-print">
+    <div class="modal-box">
+      <h3 id="modal-title">Konfirmasi</h3>
+      <p id="modal-message">Apakah Anda yakin?</p>
+      <div class="modal-actions">
+        <button id="btn-modal-batal" class="btn btn-outline">Batal</button>
+        <button id="btn-modal-ok" class="btn btn-danger">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+  
+  
+  
+  <!-- Modal Zoom Gambar (Lightbox) -->
+  <div id="image-modal" class="modal-overlay hidden no-print" onclick="closeImageModal()">
+    <div class="image-modal-content">
+      <span class="close-image-modal">&times;</span>
+      <img id="zoomed-image" src="" alt="Zoomed">
+    </div>
+  </div>
+
+  <!-- PWA INSTALL BANNER MODERN -->
+  <div id="pwa-install-banner" class="pwa-banner no-print">
+    <div class="pwa-banner-content">
+      <div class="pwa-icon">📦</div>
+      <div class="pwa-text">
+        <h4>Install Kas & Stok</h4>
+        <p>Tambahkan ke layar utama HP Anda untuk akses instan & tampilan penuh.</p>
+      </div>
+    </div>
+    <div class="pwa-actions">
+      <button id="btn-pwa-tolak" class="btn btn-outline btn-sm" style="flex: 1;">Nanti Saja</button>
+      <button id="btn-pwa-install" class="btn btn-primary btn-sm" style="flex: 1;">Install Sekarang</button>
+    </div>
+  </div>
+
+  <!-- Toast Notifikasi (Pesan Bawah Layar) -->
+  <div id="toast" class="toast">Notifikasi</div>
+  
+
+  <!-- Toast Notifikasi (Pesan Bawah Layar) -->
+  <div id="toast" class="toast">Notifikasi</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
