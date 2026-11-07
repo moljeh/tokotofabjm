@@ -61,10 +61,11 @@ const cleanRibuan = (str) => {
 // ========================================================
 // 4. FUNGSI PEMROSESAN GAMBAR (KOMPRESI BASE64 & ZOOM)
 // ========================================================
-// Mengubah File ke Base64 dengan kompresi maksimal Lebar 400px
+// Mengubah File ke Base64 dengan kompresi otomatis (Tanpa Batas Ukuran File)
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   if (!file) return reject(new Error("File tidak ada"));
-  if (file.size > 3 * 1024 * 1024) return reject(new Error("Maksimal ukuran foto 3 MB"));
+  
+  // Batasan 3MB DIHAPUS. User bebas upload foto ukuran besar dari HP.
   
   const reader = new FileReader();
   reader.readAsDataURL(file);
@@ -72,7 +73,9 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 400; 
+      
+      // Diubah ke 800 agar gambar tetap sangat jernih saat di-zoom
+      const MAX_WIDTH = 800; 
       let width = img.width;
       let height = img.height;
       
@@ -86,7 +89,8 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // Kompres Kualitas 70%
+      // Kompresi format JPEG kualitas 70% (File 5-10MB akan susut jadi ~150KB)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
       resolve(dataUrl.split(',')[1]);
     };
     img.src = event.target.result;
