@@ -2,7 +2,7 @@
 // 1. KONFIGURASI BACKEND & KEAMANAN
 // ========================================================
 const TOKEN = "RAHASIA_KAS_STOK_2026"; 
-const DB_NAME = "Kas Toko Bangkalan"; // Nama Folder Drive Penyimpanan
+const DB_NAME = "Kas Toko Tofa BJM"; // Nama Folder Drive Penyimpanan
 
 // ========================================================
 // 2. FUNGSI SETUP & RESET DATABASE
@@ -107,6 +107,10 @@ function doPost(e) {
     if (action === 'getLaporan') return out({ ok: true, data: getLaporan(payload) });
     if (action === 'getImageBase64') return out({ ok: true, data: getImageBase64(payload) });
     if (action === 'resetDatabase') return out({ ok: true, data: resetDatabase() });
+    if (action === 'updatePemasukan') return out({ ok: true, data: updatePemasukan(payload) });
+    if (action === 'hapusPemasukan') return out({ ok: true, data: hapusPemasukan(payload) });
+    if (action === 'updatePengeluaran') return out({ ok: true, data: updatePengeluaran(payload) });
+    if (action === 'hapusPengeluaran') return out({ ok: true, data: hapusPengeluaran(payload) });
 
     return out({ ok: false, error: "Action API tidak ditemukan" });
   } catch (err) {
@@ -324,19 +328,23 @@ function getLaporan(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const dataIn = ss.getSheetByName("Pemasukan").getDataRange().getValues();
   const dataOut = ss.getSheetByName("Pengeluaran").getDataRange().getValues();
-  dataIn.shift(); dataOut.shift(); 
+  
+  // Sisipkan nomor baris asli Excel sebelum header dibuang
+  let mapIn = dataIn.map((r, i) => { r.push(i + 1); return r; });
+  let mapOut = dataOut.map((r, i) => { r.push(i + 1); return r; });
+  
+  mapIn.shift(); mapOut.shift(); 
 
   const filterByDate = (row) => {
     if (payload.jenis === 'semua') return true;
     const d = parseTanggalStr(row[0]);
     if (isNaN(d.getTime())) return false;
-    
     if (payload.jenis === 'tahunan') return d.getFullYear() === Number(payload.tahun);
     if (payload.jenis === 'bulanan') return d.getFullYear() === Number(payload.tahun) && (d.getMonth() + 1) === Number(payload.bulan);
   };
 
-  const filteredIn = dataIn.filter(filterByDate).reverse(); 
-  const filteredOut = dataOut.filter(filterByDate).reverse();
+  const filteredIn = mapIn.filter(filterByDate).reverse(); 
+  const filteredOut = mapOut.filter(filterByDate).reverse();
   
   let totIn = filteredIn.reduce((acc, row) => acc + Number(row[5]), 0);
   let totOut = filteredOut.reduce((acc, row) => acc + Number(row[2]), 0);
@@ -348,12 +356,87 @@ function getLaporan(payload) {
     judul = `Laporan Bulanan - ${namaBulan[Number(payload.bulan)]} ${payload.tahun}`;
   }
 
-  return { 
-    judul: judul, 
-    totPemasukan: totIn, 
-    totPengeluaran: totOut, 
-    saldo: totIn - totOut, 
-    pemasukan: filteredIn, 
-    pengeluaran: filteredOut 
-  };
+  return { judul: judul, totPemasukan: totIn, totPengeluaran: totOut, saldo: totIn - totOut, pemasukan: filteredIn, pengeluaran: filteredOut };
+}
+
+
+// ========================================================
+// 8. FUNGSI EDIT & HAPUS TRANSAKSI (AUTO-SINKRONISASI STOK)
+// ========================================================
+function updatePemasukan(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const shPem = ss.getSheetByName("Pemasukan");
+    const shBarang = ss.getSheetByName("Barang");
+    const row = Number(payload.row);
+    
+    const oldIdBarang = shPem.getRange(row, 2).getValue();
+    const oldQty = Number(shPem.getRange(row, 4).getValue());
+    const newQty = Number(payload.qty);
+    const newTotal = Number(payload.total);
+    const newHargaSatuan = newQty > 0 ? newTotal / newQty : 0;
+
+    // Hitung selisih stok jika produk fisik
+    if (oldIdBarang !== "JASA") {
+       const dataB = shBarang.getDataRange().getValues();
+       let rowBarang = -1; let stokSekarang = 0;
+       for (let i = 1; i < dataB.length; i++) {
+         if (dataB[i][0] === oldIdBarang) { rowBarang = i + 1; stokSekarang = Number(dataB[i][2]); break; }
+       }
+       if (rowBarang > -1) {
+          const selisih = newQty - oldQty;
+          if (stokSekarang - selisih < 0) throw new Error(`Gagal: Sisa stok saat ini (${stokSekarang}) tidak mencukupi untuk penambahan qty ini!`);
+          shBarang.getRange(rowBarang, 3).setValue(stokSekarang - selisih);
+       }
+    }
+    shPem.getRange(row, 4).setValue(newQty);
+    shPem.getRange(row, 5).setValue(newHargaSatuan);
+    shPem.getRange(row, 6).setValue(newTotal);
+    if (payload.ket) shPem.getRange(row, 7).setValue(payload.ket);
+  } finally { lock.releaseLock(); }
+  return true;
+}
+
+function hapusPemasukan(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const shPem = ss.getSheetByName("Pemasukan");
+    const row = Number(payload.row);
+
+    const oldIdBarang = shPem.getRange(row, 2).getValue();
+    const oldQty = Number(shPem.getRange(row, 4).getValue());
+
+    if (oldIdBarang !== "JASA") {
+       const shBarang = ss.getSheetByName("Barang");
+       const dataB = shBarang.getDataRange().getValues();
+       let rowBarang = -1; let stokSekarang = 0;
+       for (let i = 1; i < dataB.length; i++) {
+         if (dataB[i][0] === oldIdBarang) { rowBarang = i + 1; stokSekarang = Number(dataB[i][2]); break; }
+       }
+       if (rowBarang > -1) shBarang.getRange(rowBarang, 3).setValue(stokSekarang + oldQty);
+    }
+    shPem.deleteRow(row);
+  } finally { lock.releaseLock(); }
+  return true;
+}
+
+function updatePengeluaran(payload) {
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const shPeng = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pengeluaran");
+    shPeng.getRange(Number(payload.row), 2).setValue(payload.ket);
+    shPeng.getRange(Number(payload.row), 3).setValue(Number(payload.jumlah));
+  } finally { lock.releaseLock(); }
+  return true;
+}
+
+function hapusPengeluaran(payload) {
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try { SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pengeluaran").deleteRow(Number(payload.row)); } 
+  finally { lock.releaseLock(); }
+  return true;
 }

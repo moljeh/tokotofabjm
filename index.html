@@ -290,13 +290,13 @@
             </div>
           </div>
 
-          <h3 class="mt-2">Rincian Pemasukan</h3>
+         <h3 class="mt-2">Rincian Pemasukan</h3>
           <div class="table-responsive">
             <table class="data-table" id="tabel-lap-pemasukan">
               <thead>
-                <tr><th>Tanggal</th><th>Barang / Jasa</th><th>Qty</th><th>Harga</th><th>Total</th><th>Keterangan</th></tr>
+                <tr><th>Tanggal</th><th>Barang / Jasa</th><th>Qty</th><th>Harga</th><th>Total</th><th>Keterangan</th><th class="no-print">Aksi</th></tr>
               </thead>
-              <tbody><tr><td colspan="6" class="text-center">Belum ditarik</td></tr></tbody>
+              <tbody><tr><td colspan="7" class="text-center">Belum ditarik</td></tr></tbody>
             </table>
           </div>
 
@@ -304,9 +304,9 @@
           <div class="table-responsive">
             <table class="data-table" id="tabel-lap-pengeluaran">
               <thead>
-                <tr><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th></tr>
+                <tr><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th><th class="no-print">Aksi</th></tr>
               </thead>
-              <tbody><tr><td colspan="3" class="text-center">Belum ditarik</td></tr></tbody>
+              <tbody><tr><td colspan="4" class="text-center">Belum ditarik</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -338,6 +338,60 @@
     <div class="image-modal-content">
       <span class="close-image-modal">&times;</span>
       <img id="zoomed-image" src="" alt="Zoomed">
+    </div>
+  </div>
+  
+  
+  
+  <!-- Modal Edit Pemasukan -->
+  <div id="modal-edit-pem" class="modal-overlay hidden no-print">
+    <div class="modal-box" style="text-align: left; max-width: 450px;">
+      <h3 style="margin-bottom: 1rem;">Ubah Pemasukan</h3>
+      <form id="form-edit-pem" class="form-grid">
+        <input type="hidden" id="edit-pem-row">
+        <div class="form-group full-width">
+          <label>Nama Barang / Jasa</label>
+          <input type="text" id="edit-pem-nama" disabled style="background: #e2e8f0; cursor: not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Qty Baru</label>
+          <input type="number" id="edit-pem-qty" min="1" required>
+        </div>
+        <div class="form-group">
+          <label>Total Harga Baru (Rp)</label>
+          <input type="text" id="edit-pem-harga" inputmode="numeric" required>
+        </div>
+        <div class="form-group full-width">
+          <label>Keterangan Baru</label>
+          <input type="text" id="edit-pem-ket">
+        </div>
+        <div class="modal-actions full-width mt-1">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-pem').classList.add('hidden')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Edit Pengeluaran -->
+  <div id="modal-edit-peng" class="modal-overlay hidden no-print">
+    <div class="modal-box" style="text-align: left; max-width: 450px;">
+      <h3 style="margin-bottom: 1rem;">Ubah Pengeluaran</h3>
+      <form id="form-edit-peng" class="form-grid">
+        <input type="hidden" id="edit-peng-row">
+        <div class="form-group full-width">
+          <label>Jumlah Baru (Rp)</label>
+          <input type="text" id="edit-peng-jumlah" inputmode="numeric" required>
+        </div>
+        <div class="form-group full-width">
+          <label>Keterangan Baru</label>
+          <input type="text" id="edit-peng-ket" required>
+        </div>
+        <div class="modal-actions full-width mt-1">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-edit-peng').classList.add('hidden')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+        </div>
+      </form>
     </div>
   </div>
 

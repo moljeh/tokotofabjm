@@ -2,7 +2,7 @@
 // 1. KONFIGURASI APLIKASI UTAMA
 // ========================================================
 // ⚠️ GANTI DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT ANDA ⚠️
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx4wwmZtG7n7mKD8tN1etQLDe3K8D8St3Vzo807go51BCXNUpr8at2RtmFebs_GMCPL3Q/exec"; 
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzrZgyocL79TTKXzSS2G8WZXBrVIXOXByfGOfacLJxZcYJwVQPrgQr6hXZ0Oy10T5oCtA/exec"; 
 const TOKEN = "RAHASIA_KAS_STOK_2026"; 
 
 // Variabel Penampung Cache Data
@@ -48,7 +48,7 @@ const formatInputRibuan = (e) => {
 };
 
 // Menerapkan listener ke semua ID form uang (termasuk form Jasa)
-['brg-hargabeli', 'brg-hargajual', 'in-harga', 'out-jumlah', 'jasa-total'].forEach(id => {
+['brg-hargabeli', 'brg-hargajual', 'in-harga', 'out-jumlah', 'jasa-total', 'edit-pem-harga', 'edit-peng-jumlah'].forEach(id => {
   const el = getEl(id);
   if (el) el.addEventListener('input', formatInputRibuan);
 });
@@ -719,13 +719,25 @@ getEl('form-filter-laporan').addEventListener('submit', async (e) => {
     getEl('lap-tot-pengeluaran').textContent = formatRupiah(res.totPengeluaran);
     getEl('lap-tot-saldo').textContent = formatRupiah(res.saldo);
 
-    const tbodyIn = document.querySelector('#tabel-lap-pemasukan tbody');
-    tbodyIn.innerHTML = res.pemasukan.length === 0 ? '<tr><td colspan="6" class="text-center">Tidak ada data</td></tr>' : '';
-    res.pemasukan.forEach(r => tbodyIn.innerHTML += `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${formatRupiah(r[4])}</td><td>${formatRupiah(r[5])}</td><td>${r[6]}</td></tr>`);
+   
+   const tbodyIn = document.querySelector('#tabel-lap-pemasukan tbody');
+    tbodyIn.innerHTML = res.pemasukan.length === 0 ? '<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>' : '';
+    res.pemasukan.forEach(r => {
+      const btn = `<button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:12px;" onclick="bukaEditPem(${r[7]}, '${r[2]}', ${r[3]}, ${r[5]}, '${r[6] || ''}')">Edit</button>
+                   <button type="button" class="btn btn-sm btn-danger" style="padding:4px 8px; font-size:12px;" onclick="hapusPem(${r[7]}, '${r[2]}')">Hapus</button>`;
+      tbodyIn.innerHTML += `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${formatRupiah(r[4])}</td><td>${formatRupiah(r[5])}</td><td>${r[6]}</td><td class="no-print" style="min-width:120px; display:flex; gap:4px;">${btn}</td></tr>`;
+    });
 
     const tbodyOut = document.querySelector('#tabel-lap-pengeluaran tbody');
-    tbodyOut.innerHTML = res.pengeluaran.length === 0 ? '<tr><td colspan="3" class="text-center">Tidak ada data</td></tr>' : '';
-    res.pengeluaran.forEach(r => tbodyOut.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${formatRupiah(r[2])}</td></tr>`);
+    tbodyOut.innerHTML = res.pengeluaran.length === 0 ? '<tr><td colspan="4" class="text-center">Tidak ada data</td></tr>' : '';
+    res.pengeluaran.forEach(r => {
+      const btn = `<button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:12px;" onclick="bukaEditPeng(${r[3]}, '${r[1]}', ${r[2]})">Edit</button>
+                   <button type="button" class="btn btn-sm btn-danger" style="padding:4px 8px; font-size:12px;" onclick="hapusPeng(${r[3]}, '${r[1]}')">Hapus</button>`;
+      tbodyOut.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${formatRupiah(r[2])}</td><td class="no-print" style="min-width:120px; display:flex; gap:4px;">${btn}</td></tr>`;
+    });
+   
+   
+   
   } catch(err) { showToast(err.message); } 
   finally { btnSubmit.disabled = false; btnSubmit.textContent = textAwal; }
 });
@@ -777,3 +789,60 @@ window.addEventListener('offline', handleConnectionStatus);
 
 // Memastikan jaringan aman saat aplikasi pertama kali dibuka
 handleConnectionStatus();
+
+
+// ========================================================
+// 15. LOGIKA FORM EDIT & HAPUS TRANSAKSI DI LAPORAN
+// ========================================================
+window.bukaEditPem = function(row, nama, qty, total, ket) {
+  getEl('edit-pem-row').value = row; getEl('edit-pem-nama').value = nama;
+  getEl('edit-pem-qty').value = qty; getEl('edit-pem-ket').value = ket;
+  getEl('edit-pem-harga').value = new Intl.NumberFormat('id-ID').format(total);
+  getEl('modal-edit-pem').classList.remove('hidden');
+};
+
+getEl('form-edit-pem').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = "⏳ Memproses...";
+  try {
+    await api('updatePemasukan', {
+      row: getEl('edit-pem-row').value, qty: getEl('edit-pem-qty').value,
+      total: cleanRibuan(getEl('edit-pem-harga').value), ket: getEl('edit-pem-ket').value
+    });
+    showToast("Pemasukan diupdate! Stok otomatis disesuaikan.");
+    getEl('modal-edit-pem').classList.add('hidden');
+    getEl('form-filter-laporan').dispatchEvent(new Event('submit')); // Reload laporan real-time
+    dataBarang = []; // Reset cache agar Dashboard menarik stok terbaru
+  } catch(err) { showToast(err.message); } finally { btn.disabled = false; btn.textContent = "Simpan Perubahan"; }
+});
+
+window.hapusPem = async function(row, nama) {
+  const ok = await showConfirm("Hapus Pemasukan", `Yakin menghapus riwayat "${nama}"?<br><b>Stok akan otomatis dikembalikan.</b>`, "Hapus", "btn-danger");
+  if(!ok) return;
+  try { await api('hapusPemasukan', { row }); showToast("Riwayat dihapus & Stok dikembalikan!"); getEl('form-filter-laporan').dispatchEvent(new Event('submit')); dataBarang = [];
+  } catch(err) { showToast(err.message); }
+};
+
+window.bukaEditPeng = function(row, ket, jumlah) {
+  getEl('edit-peng-row').value = row; getEl('edit-peng-ket').value = ket;
+  getEl('edit-peng-jumlah').value = new Intl.NumberFormat('id-ID').format(jumlah);
+  getEl('modal-edit-peng').classList.remove('hidden');
+};
+
+getEl('form-edit-peng').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = "⏳ Memproses...";
+  try {
+    await api('updatePengeluaran', { row: getEl('edit-peng-row').value, ket: getEl('edit-peng-ket').value, jumlah: cleanRibuan(getEl('edit-peng-jumlah').value) });
+    showToast("Pengeluaran diupdate!"); getEl('modal-edit-peng').classList.add('hidden'); getEl('form-filter-laporan').dispatchEvent(new Event('submit'));
+  } catch(err) { showToast(err.message); } finally { btn.disabled = false; btn.textContent = "Simpan Perubahan"; }
+});
+
+window.hapusPeng = async function(row, ket) {
+  const ok = await showConfirm("Hapus Pengeluaran", `Yakin menghapus "${ket}"?`, "Hapus", "btn-danger");
+  if(!ok) return;
+  try { await api('hapusPengeluaran', { row }); showToast("Pengeluaran dihapus!"); getEl('form-filter-laporan').dispatchEvent(new Event('submit'));
+  } catch(err) { showToast(err.message); }
+};
