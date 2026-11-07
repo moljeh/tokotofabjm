@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koneksi Terputus - Kas & Stok</title>
+  
+  <!-- ==========================================
+       FAVICON (IKON TAB BROWSER)
+       ========================================== -->
+  <link rel="icon" type="image/png" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <meta name="theme-color" content="#4f46e5">
+  <style>
+    body {
+      margin: 0; padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc; /* Tema Slate yang sama */
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; color: #0f172a; text-align: center;
+    }
+    .offline-card {
+      background: #ffffff;
+      padding: 2.5rem 2rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      max-width: 90%; width: 400px;
+      border: 1px solid #e2e8f0;
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    
+    .icon { font-size: 4.5rem; margin-bottom: 1rem; filter: grayscale(100%); }
+    h2 { margin: 0 0 1rem 0; color: #0f172a; font-size: 1.5rem; font-weight: 800; }
+    p { color: #64748b; margin-bottom: 2rem; line-height: 1.5; font-size: 0.95rem; }
+    
+    .btn {
+      background: #4f46e5; color: white; border: none;
+      padding: 0.875rem 1.5rem; border-radius: 8px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      width: 100%; transition: transform 0.2s, background 0.2s;
+      display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+    }
+    .btn:hover { background: #4338ca; transform: translateY(-2px); }
+    .btn:active { transform: scale(0.97); }
+    
+    /* Notifikasi merah jika dicoba refresh tapi masih offline */
+    .toast {
+      visibility: hidden; min-width: 250px; background-color: #ef4444; color: #fff;
+      text-align: center; border-radius: 50px; padding: 12px 24px; position: fixed;
+      z-index: 10; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.95rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); font-weight: 600;
+    }
+    .toast.show { visibility: visible; animation: fadein 0.4s, fadeout 0.4s 2.6s; }
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+  </style>
+</head>
+<body>
+
+  <div class="offline-card">
+    <div class="icon">📡</div>
+    <h2>Koneksi Terputus</h2>
+    <p>Oops! Aplikasi Kas & Stok membutuhkan akses internet untuk tersinkronisasi dengan database pusat.<br><br><b>Pastikan paket data seluler atau Wi-Fi Anda sedang aktif.</b></p>
+    <button class="btn" onclick="checkConnection()">🔄 Coba Muat Ulang</button>
+  </div>
+
+  <div id="toast" class="toast">Jaringan masih terputus!</div>
+
+  <script>
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.className = "toast show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    // Fungsi mengecek ulang koneksi internet
+    function checkConnection() {
+      const btn = document.querySelector('.btn');
+      btn.textContent = "Mengecek...";
+      
+      setTimeout(() => {
+        if (navigator.onLine) {
+          // Jika internet sudah kembali, langsung redirect ke aplikasi utama
+          window.location.replace('index.html');
+        } else {
+          btn.textContent = "🔄 Coba Muat Ulang";
+          showToast();
+        }
+      }, 500);
+    }
+
+    // Otomatis mendeteksi jika internet tiba-tiba nyala tanpa ditekan
+    window.addEventListener('online', checkConnection);
+  </script>
+</body>
+</html>

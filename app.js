@@ -756,3 +756,20 @@ getEl('btn-csv').addEventListener('click', () => {
 
 // MEMULAI APLIKASI SAAT PERTAMA KALI DIBUKA
 loadDashboard();
+
+
+// ========================================================
+// 14. DETEKSI KONEKSI INTERNET (OFFLINE REDIRECT)
+// ========================================================
+function handleConnectionStatus() {
+  if (!navigator.onLine) {
+    // Jika offline, lempar pengguna ke halaman khusus
+    window.location.replace('offline.html');
+  }
+}
+
+// Mendengarkan perubahan jaringan secara Real-Time
+window.addEventListener('offline', handleConnectionStatus);
+
+// Memastikan jaringan aman saat aplikasi pertama kali dibuka
+handleConnectionStatus();

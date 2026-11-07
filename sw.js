@@ -1,10 +1,12 @@
-const CACHE_NAME = 'kas-stok-v1';
+// Versi dinaikkan menjadi v2 agar browser mau memperbarui cache-nya
+const CACHE_NAME = 'kas-stok-v2';
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  './offline.html' // <--- File offline.html ditambahkan ke memori
 ];
 
 self.addEventListener('install', event => {
@@ -18,7 +20,12 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => {
-      return response || fetch(event.request);
+      // Jika request gagal (karena offline), maka fallback otomatis ke offline.html
+      return response || fetch(event.request).catch(() => {
+        if (event.request.mode === 'navigate' || (event.request.method === 'GET' && event.request.headers.get('accept').includes('text/html'))) {
+          return caches.match('./offline.html');
+        }
+      });
     })
   );
 });
